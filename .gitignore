@@ -1,0 +1,11 @@
+/rust/target
+/bindgen_test/target
+**/*.rs.bk
+Cargo.lock
+math_iface/gen/*
+
+*.swp
+*.a
+*.merlin
+_build
+
