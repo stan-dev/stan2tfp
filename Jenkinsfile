@@ -66,7 +66,6 @@ pipeline {
                 }
             }
             steps {
-                sh 'printenv'
                 runShell("""
                     eval \$(opam env)
                     dune build @install
@@ -89,7 +88,6 @@ pipeline {
                 }
             }
             steps {
-                sh 'printenv'
                 sh """
                     eval \$(opam env)
                     make format  ||
@@ -121,7 +119,6 @@ pipeline {
                         }
                     }
                     steps {
-                        sh 'printenv'
                         runShell("""
                             eval \$(opam env)
                             dune runtest
