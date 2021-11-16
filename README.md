@@ -15,8 +15,8 @@ A Python [wrapper package](https://github.com/adamhaber/stan2tfp) is available
 on [PyPi](https://pypi.org/project/stan2tfp/).
 
 The structure of this repository also serves as a template for how further
-extensions to the stanc3 compiler can proceed. The stanc3 repository [exposes]
-(https://mc-stan.org/stanc3/stanc/#modules) packages `stanc.frontend`,
+extensions to the stanc3 compiler can proceed. The stanc3 repository
+[exposes](https://mc-stan.org/stanc3/stanc/#modules) packages `stanc.frontend`,
 `stanc.middle`, `stanc.common`, and `stanc.analysis` which can be used to build
 a new backend and new executable. If a backend reaches a good level of parity
 with the C++ backend, it can be considered for formal support within stanc3.
