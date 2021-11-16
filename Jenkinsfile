@@ -157,7 +157,7 @@ pipeline {
                             opam switch 4.12.0
                             eval \$(opam env)
                             opam update || true
-                            bash -x scripts/install_build_deps.sh
+                            bash -x src/stanc3/scripts/install_build_deps.sh
                             dune subst
                             dune build @install
                         """)
