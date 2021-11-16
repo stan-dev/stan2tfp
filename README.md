@@ -1,5 +1,8 @@
 # A Stan-to-TensorFlow Probability Compiler, stan2tfp
 
+[![Build Status](https://jenkins.mc-stan.org/buildStatus/icon?job=stan2tfp%2Fmaster&style=flat-square)](https://jenkins.mc-stan.org/job/stan2tfp/job/master/)
+
+
 This repo houses the experimental/WIP Stan-to-Tensorflow Probability transpiler.
 It uses the frontend and middle-end capabilties of
 [stanc3](https://github.com/stan-dev/stanc3) by vendoring that repo as a git
