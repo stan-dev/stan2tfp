@@ -1,0 +1,4 @@
+[submodule "src/stanc3"]
+	path = src/stanc3
+	url = https://github.com/stan-dev/stanc3.git
+	branch = tfp-extraction

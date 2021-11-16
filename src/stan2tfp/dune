@@ -1,6 +1,6 @@
 (executable
  (name stan2tfp)
- (libraries frontend tfp_backend)
+ (libraries stanc.frontend tfp_backend)
  (public_name stan2tfp)
  (preprocess
   (pps ppx_jane)))

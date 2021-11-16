@@ -11,6 +11,7 @@ _opam
 _build
 *.merlin
 stanc.install
+stan2tfp.install
 
 # js
 node_modules/*
