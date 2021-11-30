@@ -35,7 +35,12 @@ pipeline {
             steps { script { utils.killOldBuilds() } }
         }
         stage('Verify changes') {
-            agent { label 'linux' }
+            agent {
+                docker {
+                    image 'stanorg/ci:alpine'
+                    label 'linux'
+                }
+            }
             steps {
                 script {
                     retry(3) { checkout scm }
@@ -151,7 +156,7 @@ pipeline {
                             !skipRemainingStages
                         }
                     }
-                    agent { label "osx && ocaml" }
+                    agent { label "osx" }
                     steps {
                         runShell("""
                             opam switch 4.12.0
@@ -421,7 +426,12 @@ pipeline {
                     anyOf { buildingTag(); branch 'master' }
                 }
             }
-            agent { label 'linux' }
+            agent {
+                docker {
+                    image 'stanorg/ci:alpine'
+                    label 'linux'
+                }
+            }
             environment { GITHUB_TOKEN = credentials('6e7c1e8f-ca2c-4b11-a70e-d934d3f6b681') }
             steps {
                 unstash 'windows-exe'
@@ -441,9 +451,10 @@ pipeline {
             }
         }
     }
-    post {
-       always {
-          script {utils.mailBuildResults()}
-        }
-    }
+// Below lines are commented to avoid spamming emails during migration/debug
+//     post {
+//        always {
+//           script {utils.mailBuildResults()}
+//         }
+//     }
 }
