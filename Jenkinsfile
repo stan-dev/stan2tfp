@@ -34,28 +34,23 @@ pipeline {
             }
             steps { script { utils.killOldBuilds() } }
         }
-        stage('Verify changes') {
-            agent {
-                docker {
-                    image 'stanorg/ci:alpine'
-                    label 'linux'
-                }
-            }
-            steps {
-                script {
-                    retry(3) { checkout scm }
-                    sh 'git clean -xffd'
-
-
-                    def sourceCodePaths = ['src'].join(" ")
-                    skipRemainingStages = utils.verifyChanges(sourceCodePaths)
-
-                    if (buildingTag()) {
-                        buildingAgentARM = "arm-ec2"
-                    }
-                }
-            }
-        }
+//         stage('Verify changes') {
+//             agent { label 'linux' }
+//             steps {
+//                 script {
+//                     retry(3) { checkout scm }
+//                     sh 'git clean -xffd'
+//
+//
+//                     def sourceCodePaths = ['src'].join(" ")
+//                     skipRemainingStages = utils.verifyChanges(sourceCodePaths)
+//
+//                     if (buildingTag()) {
+//                         buildingAgentARM = "arm-ec2"
+//                     }
+//                 }
+//             }
+//         }
         stage("Build") {
             when {
                 beforeAgent true
@@ -65,9 +60,9 @@ pipeline {
             }
             agent {
                 docker {
-                    image 'stanorg/stanc3:debian'
+                    image 'stanorg/stanc3:debianfi'
                     //Forces image to ignore entrypoint
-                    args "-u root --entrypoint=\'\'"
+                    args "--entrypoint=\'\'"
                 }
             }
             steps {
@@ -87,9 +82,9 @@ pipeline {
             }
             agent {
                 docker {
-                    image 'stanorg/stanc3:debian'
+                    image 'stanorg/stanc3:debianfi'
                     //Forces image to ignore entrypoint
-                    args "-u root --entrypoint=\'\'"
+                    args "--entrypoint=\'\'"
                 }
             }
             steps {
@@ -118,9 +113,9 @@ pipeline {
                 stage("Dune tests") {
                     agent {
                         docker {
-                            image 'stanorg/stanc3:debian'
+                            image 'stanorg/stanc3:debianfi'
                             //Forces image to ignore entrypoint
-                            args "-u root --entrypoint=\'\'"
+                            args "--entrypoint=\'\'"
                         }
                     }
                     steps {
@@ -135,7 +130,7 @@ pipeline {
                     agent {
                         docker {
                             image 'tensorflow/tensorflow@sha256:08901711826b185136886c7b8271b9fdbe86b8ccb598669781a1f5cb340184eb'
-                            args '-u root'
+                            //args '-u root'
                         }
                     }
                     steps {
@@ -156,7 +151,7 @@ pipeline {
                             !skipRemainingStages
                         }
                     }
-                    agent { label "osx" }
+                    agent { label "osx && ocaml" }
                     steps {
                         runShell("""
                             opam switch 4.12.0
@@ -183,7 +178,7 @@ pipeline {
                     }
                     agent {
                         docker {
-                            image 'stanorg/stanc3:static'
+                            image 'stanorg/stanc3:staticfi'
                             //Forces image to ignore entrypoint
                             args "-u 1000 --entrypoint=\'\'"
                         }
@@ -212,9 +207,9 @@ pipeline {
                     }
                     agent {
                         docker {
-                            image 'stanorg/stanc3:static'
+                            image 'stanorg/stanc3:staticfi'
                             //Forces image to ignore entrypoint
-                            args "-u 1000 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
+                            args "--group-add=987 --group-add=988 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
                         }
                     }
                     steps {
@@ -242,9 +237,9 @@ pipeline {
                     }
                     agent {
                         docker {
-                            image 'stanorg/stanc3:static'
+                            image 'stanorg/stanc3:staticfi'
                             //Forces image to ignore entrypoint
-                            args "-u 1000 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
+                            args "--group-add=987 --group-add=988 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
                         }
                     }
                     steps {
@@ -272,9 +267,9 @@ pipeline {
                     }
                     agent {
                         docker {
-                            image 'stanorg/stanc3:static'
+                            image 'stanorg/stanc3:staticfi'
                             //Forces image to ignore entrypoint
-                            args "-u 1000 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
+                            args "--group-add=987 --group-add=988 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
                         }
                     }
                     steps {
@@ -302,10 +297,10 @@ pipeline {
                     }
                     agent {
                         docker {
-                            image 'stanorg/stanc3:static'
+                            image 'stanorg/stanc3:staticfi'
                             //Forces image to ignore entrypoint
-                            label 'linux-ec2'
-                            args "-u 1000 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
+                            label 'linux'
+                            args "--group-add=987 --group-add=988 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
                         }
                     }
                     steps {
@@ -333,10 +328,10 @@ pipeline {
                     }
                     agent {
                         docker {
-                            image 'stanorg/stanc3:static'
+                            image 'stanorg/stanc3:staticfi'
                             //Forces image to ignore entrypoint
-                            label 'linux-ec2'
-                            args "-u 1000 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
+                            label 'linux'
+                            args "--group-add=987 --group-add=988 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
                         }
                     }
                     steps {
@@ -364,10 +359,10 @@ pipeline {
                     }
                     agent {
                         docker {
-                            image 'stanorg/stanc3:static'
+                            image 'stanorg/stanc3:staticfi'
                             //Forces image to ignore entrypoint
-                            label 'linux-ec2'
-                            args "-u 1000 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
+                            label 'linux'
+                            args "--group-add=987 --group-add=988 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
                         }
                     }
                     steps {
@@ -385,7 +380,7 @@ pipeline {
                     post {always { runShell("rm -rf ./*")}}
                 }
 
-                // Cross compiling for windows on debian
+                // Cross compiling for windows on debianfi
                 stage("Build & test static Windows binary") {
                     when {
                         beforeAgent true
@@ -395,8 +390,8 @@ pipeline {
                     }
                     agent {
                         docker {
-                            image 'stanorg/stanc3:debian-windows'
-                            label 'linux-ec2'
+                            image 'stanorg/stanc3:debian-windowsfi'
+                            label 'linux'
                             //Forces image to ignore entrypoint
                             args "-u 1000 --entrypoint=\'\'"
                         }
@@ -418,43 +413,38 @@ pipeline {
             }
 
         }
-        stage("Release tag and publish binaries") {
-            when {
-                beforeAgent true
-                allOf {
-                    expression { !skipRemainingStages }
-                    anyOf { buildingTag(); branch 'master' }
-                }
-            }
-            agent {
-                docker {
-                    image 'stanorg/ci:alpine'
-                    label 'linux'
-                }
-            }
-            environment { GITHUB_TOKEN = credentials('6e7c1e8f-ca2c-4b11-a70e-d934d3f6b681') }
-            steps {
-                unstash 'windows-exe'
-                unstash 'linux-exe'
-                unstash 'mac-exe'
-                unstash 'linux-mips64el-exe'
-                unstash 'linux-ppc64el-exe'
-                unstash 'linux-s390x-exe'
-                unstash 'linux-arm64-exe'
-                unstash 'linux-armhf-exe'
-                unstash 'linux-armel-exe'
-                runShell("""
-                    wget https://github.com/tcnksm/ghr/releases/download/v0.12.1/ghr_v0.12.1_linux_amd64.tar.gz
-                    tar -zxvpf ghr_v0.12.1_linux_amd64.tar.gz
-                    ./ghr_v0.12.1_linux_amd64/ghr -recreate ${tagName()} bin/
-                """)
-            }
+//         stage("Release tag and publish binaries") {
+//             when {
+//                 beforeAgent true
+//                 allOf {
+//                     expression { !skipRemainingStages }
+//                     anyOf { buildingTag(); branch 'master' }
+//                 }
+//             }
+//             agent { label 'linux' }
+//             environment { GITHUB_TOKEN = credentials('6e7c1e8f-ca2c-4b11-a70e-d934d3f6b681') }
+//             steps {
+//                 unstash 'windows-exe'
+//                 unstash 'linux-exe'
+//                 unstash 'mac-exe'
+//                 unstash 'linux-mips64el-exe'
+//                 unstash 'linux-ppc64el-exe'
+//                 unstash 'linux-s390x-exe'
+//                 unstash 'linux-arm64-exe'
+//                 unstash 'linux-armhf-exe'
+//                 unstash 'linux-armel-exe'
+//                 runShell("""
+//                     wget https://github.com/tcnksm/ghr/releases/download/v0.12.1/ghr_v0.12.1_linux_amd64.tar.gz
+//                     tar -zxvpf ghr_v0.12.1_linux_amd64.tar.gz
+//                     ./ghr_v0.12.1_linux_amd64/ghr -recreate ${tagName()} bin/
+//                 """)
+//             }
+//         }
+
+    }
+    post {
+       always {
+          script {utils.mailBuildResults()}
         }
     }
-// Below lines are commented to avoid spamming emails during migration/debug
-//     post {
-//        always {
-//           script {utils.mailBuildResults()}
-//         }
-//     }
 }
