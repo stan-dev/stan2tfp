@@ -394,7 +394,14 @@ pipeline {
                     anyOf { buildingTag(); branch 'master' }
                 }
             }
-            agent { label 'linux' }
+            agent {
+                docker {
+                    image 'stanorg/stanc3:staticfi'
+                    //Forces image to ignore entrypoint
+                    args "--entrypoint=\'\'"
+                    label 'linux'
+                }
+            }
             environment { GITHUB_TOKEN = credentials('6e7c1e8f-ca2c-4b11-a70e-d934d3f6b681') }
             steps {
                 unstash 'windows-exe'
