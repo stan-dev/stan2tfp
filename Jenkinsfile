@@ -34,6 +34,7 @@ pipeline {
             }
             steps { script { utils.killOldBuilds() } }
         }
+
         stage('Verify changes') {
             agent { label 'linux' }
             steps {
@@ -51,6 +52,7 @@ pipeline {
                 }
             }
         }
+
         stage("Build") {
             when {
                 beforeAgent true
@@ -60,9 +62,9 @@ pipeline {
             }
             agent {
                 docker {
-                    image 'stanorg/stanc3:debian'
+                    image 'stanorg/stanc3:debianfi'
                     //Forces image to ignore entrypoint
-                    args "-u root --entrypoint=\'\'"
+                    args "--entrypoint=\'\'"
                 }
             }
             steps {
@@ -82,9 +84,9 @@ pipeline {
             }
             agent {
                 docker {
-                    image 'stanorg/stanc3:debian'
+                    image 'stanorg/stanc3:debianfi'
                     //Forces image to ignore entrypoint
-                    args "-u root --entrypoint=\'\'"
+                    args "--entrypoint=\'\'"
                 }
             }
             steps {
@@ -113,9 +115,9 @@ pipeline {
                 stage("Dune tests") {
                     agent {
                         docker {
-                            image 'stanorg/stanc3:debian'
+                            image 'stanorg/stanc3:debianfi'
                             //Forces image to ignore entrypoint
-                            args "-u root --entrypoint=\'\'"
+                            args "--entrypoint=\'\'"
                         }
                     }
                     steps {
@@ -129,290 +131,261 @@ pipeline {
                 stage("TFP tests") {
                     agent {
                         docker {
-                            image 'tensorflow/tensorflow@sha256:08901711826b185136886c7b8271b9fdbe86b8ccb598669781a1f5cb340184eb'
-                            args '-u root'
+                            image 'stanorg/ci:tensorflow'
                         }
                     }
                     steps {
-                        sh "pip3 install tfp-nightly==0.11.0.dev20200516"
+                        //sh "pip3 install tfp-nightly==0.11.0.dev20200516 --user"
                         sh "python3 test/integration/tfp/tests.py"
                     }
                     post { always { runShell("rm -rf ./*") }}
                 }
             }
         }
-        stage("Build and test static release binaries") {
-            failFast true
-            parallel {
-                stage("Build & test Mac OS X binary") {
-                    when {
-                        beforeAgent true
-                        expression {
-                            !skipRemainingStages
-                        }
-                    }
-                    agent { label "osx && ocaml" }
-                    steps {
-                        runShell("""
-                            opam switch 4.12.0
-                            eval \$(opam env)
-                            opam update || true
-                            bash -x src/stanc3/scripts/install_build_deps.sh
-                            dune subst
-                            dune build @install
-                        """)
 
-                        sh "mkdir -p bin && mv _build/default/src/stan2tfp/stan2tfp.exe bin/mac-stan2tfp"
-
-                        stash name:'mac-exe', includes:'bin/*'
-                    }
-                    post { always { runShell("rm -rf ./*") }}
-                }
-
-                stage("Build & test a static Linux binary") {
-                    when {
-                        beforeAgent true
-                        expression {
-                            !skipRemainingStages
-                        }
-                    }
-                    agent {
-                        docker {
-                            image 'stanorg/stanc3:static'
-                            //Forces image to ignore entrypoint
-                            args "-u 1000 --entrypoint=\'\'"
-                        }
-                    }
-                    steps {
-                        runShell("""
-                            eval \$(opam env)
-                            dune subst
-                            dune build @install --profile static
-                        """)
-
-                        sh "mkdir -p bin && mv `find _build -name stan2tfp.exe` bin/linux-stan2tfp"
-
-                        stash name:'linux-exe', includes:'bin/*'
-                    }
-                    post {always { runShell("rm -rf ./*")}}
-                }
-
-                stage("Build & test a static Linux mips64el binary") {
-                    when {
-                        beforeAgent true
-                        allOf {
-                            expression { !skipRemainingStages }
-                            anyOf { buildingTag(); branch 'master' }
-                        }
-                    }
-                    agent {
-                        docker {
-                            image 'stanorg/stanc3:static'
-                            //Forces image to ignore entrypoint
-                            args "-u 1000 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
-                        }
-                    }
-                    steps {
-                        runShell("""
-                            eval \$(opam env)
-                            dune subst
-                        """)
-                        sh "sudo apk add docker jq"
-                        sh "sudo bash -x src/stanc3/scripts/build_multiarch_stanc3.sh mips64el"
-
-                        sh "mkdir -p bin && mv `find _build -name stan2tfp.exe` bin/linux-mips64el-stan2tfp"
-
-                        stash name:'linux-mips64el-exe', includes:'bin/*'
-                    }
-                    post {always { runShell("rm -rf ./*")}}
-                }
-
-                stage("Build & test a static Linux ppc64el binary") {
-                    when {
-                        beforeAgent true
-                        allOf {
-                            expression { !skipRemainingStages }
-                            anyOf { buildingTag(); branch 'master' }
-                        }
-                    }
-                    agent {
-                        docker {
-                            image 'stanorg/stanc3:static'
-                            //Forces image to ignore entrypoint
-                            args "-u 1000 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
-                        }
-                    }
-                    steps {
-                        runShell("""
-                            eval \$(opam env)
-                            dune subst
-                        """)
-                        sh "sudo apk add docker jq"
-                        sh "sudo bash -x src/stanc3/scripts/build_multiarch_stanc3.sh ppc64el"
-
-                        sh "mkdir -p bin && mv `find _build -name stan2tfp.exe` bin/linux-ppc64el-stan2tfp"
-
-                        stash name:'linux-ppc64el-exe', includes:'bin/*'
-                    }
-                    post {always { runShell("rm -rf ./*")}}
-                }
-
-                stage("Build & test a static Linux s390x binary") {
-                    when {
-                        beforeAgent true
-                        allOf {
-                            expression { !skipRemainingStages }
-                            anyOf { buildingTag(); branch 'master' }
-                        }
-                    }
-                    agent {
-                        docker {
-                            image 'stanorg/stanc3:static'
-                            //Forces image to ignore entrypoint
-                            args "-u 1000 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
-                        }
-                    }
-                    steps {
-                        runShell("""
-                            eval \$(opam env)
-                            dune subst
-                        """)
-                        sh "sudo apk add docker jq"
-                        sh "sudo bash -x src/stanc3/scripts/build_multiarch_stanc3.sh s390x"
-
-                        sh "mkdir -p bin && mv `find _build -name stan2tfp.exe` bin/linux-s390x-stan2tfp"
-
-                        stash name:'linux-s390x-exe', includes:'bin/*'
-                    }
-                    post {always { runShell("rm -rf ./*")}}
-                }
-
-                stage("Build & test a static Linux arm64 binary") {
-                    when {
-                        beforeAgent true
-                        allOf {
-                            expression { !skipRemainingStages }
-                            anyOf { buildingTag(); branch 'master' }
-                        }
-                    }
-                    agent {
-                        docker {
-                            image 'stanorg/stanc3:static'
-                            //Forces image to ignore entrypoint
-                            label 'linux-ec2'
-                            args "-u 1000 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
-                        }
-                    }
-                    steps {
-                        runShell("""
-                            eval \$(opam env)
-                            dune subst
-                        """)
-                        sh "sudo apk add docker jq"
-                        sh "sudo bash -x src/stanc3/scripts/build_multiarch_stanc3.sh arm64"
-
-                        sh "mkdir -p bin && mv `find _build -name stan2tfp.exe` bin/linux-arm64-stan2tfp"
-
-                        stash name:'linux-arm64-exe', includes:'bin/*'
-                    }
-                    post {always { runShell("rm -rf ./*")}}
-                }
-
-                stage("Build & test a static Linux armhf binary") {
-                    when {
-                        beforeAgent true
-                        allOf {
-                            expression { !skipRemainingStages }
-                            anyOf { buildingTag(); branch 'master' }
-                        }
-                    }
-                    agent {
-                        docker {
-                            image 'stanorg/stanc3:static'
-                            //Forces image to ignore entrypoint
-                            label 'linux-ec2'
-                            args "-u 1000 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
-                        }
-                    }
-                    steps {
-                        runShell("""
-                            eval \$(opam env)
-                            dune subst
-                        """)
-                        sh "sudo apk add docker jq"
-                        sh "sudo bash -x src/stanc3/scripts/build_multiarch_stanc3.sh armhf"
-
-                        sh "mkdir -p bin && mv `find _build -name stan2tfp.exe` bin/linux-armhf-stan2tfp"
-
-                        stash name:'linux-armhf-exe', includes:'bin/*'
-                    }
-                    post {always { runShell("rm -rf ./*")}}
-                }
-
-                stage("Build & test a static Linux armel binary") {
-                    when {
-                        beforeAgent true
-                        allOf {
-                            expression { !skipRemainingStages }
-                            anyOf { buildingTag(); branch 'master' }
-                        }
-                    }
-                    agent {
-                        docker {
-                            image 'stanorg/stanc3:static'
-                            //Forces image to ignore entrypoint
-                            label 'linux-ec2'
-                            args "-u 1000 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
-                        }
-                    }
-                    steps {
-                        runShell("""
-                            eval \$(opam env)
-                            dune subst
-                        """)
-                        sh "sudo apk add docker jq"
-                        sh "sudo bash -x src/stanc3/scripts/build_multiarch_stanc3.sh armel"
-
-                        sh "mkdir -p bin && mv `find _build -name stan2tfp.exe` bin/linux-armel-stan2tfp"
-
-                        stash name:'linux-armel-exe', includes:'bin/*'
-                    }
-                    post {always { runShell("rm -rf ./*")}}
-                }
-
-                // Cross compiling for windows on debian
-                stage("Build & test static Windows binary") {
-                    when {
-                        beforeAgent true
-                        expression {
-                            !skipRemainingStages
-                        }
-                    }
-                    agent {
-                        docker {
-                            image 'stanorg/stanc3:debian-windows'
-                            label 'linux-ec2'
-                            //Forces image to ignore entrypoint
-                            args "-u 1000 --entrypoint=\'\'"
-                        }
-                    }
-                    steps {
-
-                        runShell("""
-                            eval \$(opam env)
-                            dune subst
-                            dune build -x windows
-                        """)
-
-                        sh "mkdir -p bin && mv _build/default.windows/src/stan2tfp/stan2tfp.exe bin/windows-stan2tfp"
-
-                        stash name:'windows-exe', includes:'bin/*'
-                    }
-                    post {always { runShell("rm -rf ./*")}}
+        stage("Build & test Mac OS X binary") {
+            when {
+                beforeAgent true
+                expression {
+                    !skipRemainingStages
                 }
             }
-
+            agent { label "osx" }
+            steps {
+                runShell("""
+                    export PATH=/Users/jenkins/brew/bin:\$PATH
+                    opam switch 4.12.0
+                    eval \$(opam env)
+                    opam update || true
+                    bash -x src/stanc3/scripts/install_build_deps.sh
+                    dune subst
+                    dune build @install
+                """)
+                sh "mkdir -p bin && mv _build/default/src/stan2tfp/stan2tfp.exe bin/mac-stan2tfp"
+                stash name:'mac-exe', includes:'bin/*'
+            }
+            post { always { runShell("rm -rf ./*") }}
         }
+
+        stage("Build & test a static Linux binary") {
+            when {
+                beforeAgent true
+                expression {
+                    !skipRemainingStages
+                }
+            }
+            agent {
+                docker {
+                    image 'stanorg/stanc3:staticfi'
+                    //Forces image to ignore entrypoint
+                    args "--entrypoint=\'\'"
+                }
+            }
+            steps {
+                runShell("""
+                    eval \$(opam env)
+                    dune subst
+                    dune build @install --profile static
+                """)
+                sh "mkdir -p bin && mv `find _build -name stan2tfp.exe` bin/linux-stan2tfp"
+                stash name:'linux-exe', includes:'bin/*'
+            }
+            post {always { runShell("rm -rf ./*")}}
+        }
+
+        stage("Build & test a static Linux mips64el binary") {
+            when {
+                beforeAgent true
+                allOf {
+                    expression { !skipRemainingStages }
+                    anyOf { buildingTag(); branch 'master' }
+                }
+            }
+            agent {
+                docker {
+                    image 'stanorg/stanc3:staticfi'
+                    //Forces image to ignore entrypoint
+                    args "--group-add=987 --group-add=988 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
+                }
+            }
+            steps {
+                runShell("""
+                    eval \$(opam env)
+                    dune subst
+                """)
+                sh "bash -x src/stanc3/scripts/build_multiarch_stanc3.sh mips64el"
+                sh "mkdir -p bin && mv `find _build -name stan2tfp.exe` bin/linux-mips64el-stan2tfp"
+                stash name:'linux-mips64el-exe', includes:'bin/*'
+            }
+            post {always { runShell("rm -rf ./*")}}
+        }
+
+        stage("Build & test a static Linux ppc64el binary") {
+            when {
+                beforeAgent true
+                allOf {
+                    expression { !skipRemainingStages }
+                    anyOf { buildingTag(); branch 'master' }
+                }
+            }
+            agent {
+                docker {
+                    image 'stanorg/stanc3:staticfi'
+                    //Forces image to ignore entrypoint
+                    args "--group-add=987 --group-add=988 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
+                }
+            }
+            steps {
+                runShell("""
+                    eval \$(opam env)
+                    dune subst
+                """)
+                sh "bash -x src/stanc3/scripts/build_multiarch_stanc3.sh ppc64el"
+                sh "mkdir -p bin && mv `find _build -name stan2tfp.exe` bin/linux-ppc64el-stan2tfp"
+                stash name:'linux-ppc64el-exe', includes:'bin/*'
+            }
+            post {always { runShell("rm -rf ./*")}}
+        }
+
+        stage("Build & test a static Linux s390x binary") {
+            when {
+                beforeAgent true
+                allOf {
+                    expression { !skipRemainingStages }
+                    anyOf { buildingTag(); branch 'master' }
+                }
+            }
+            agent {
+                docker {
+                    image 'stanorg/stanc3:staticfi'
+                    //Forces image to ignore entrypoint
+                    args "--group-add=987 --group-add=988 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
+                }
+            }
+            steps {
+                runShell("""
+                    eval \$(opam env)
+                    dune subst
+                """)
+                sh "bash -x src/stanc3/scripts/build_multiarch_stanc3.sh s390x"
+                sh "mkdir -p bin && mv `find _build -name stan2tfp.exe` bin/linux-s390x-stan2tfp"
+                stash name:'linux-s390x-exe', includes:'bin/*'
+            }
+            post {always { runShell("rm -rf ./*")}}
+        }
+
+        stage("Build & test a static Linux arm64 binary") {
+            when {
+                beforeAgent true
+                allOf {
+                    expression { !skipRemainingStages }
+                    anyOf { buildingTag(); branch 'master' }
+                }
+            }
+            agent {
+                docker {
+                    image 'stanorg/stanc3:staticfi'
+                    //Forces image to ignore entrypoint
+                    label 'linux'
+                    args "--group-add=987 --group-add=988 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
+                }
+            }
+            steps {
+                runShell("""
+                    eval \$(opam env)
+                    dune subst
+                """)
+                sh "bash -x src/stanc3/scripts/build_multiarch_stanc3.sh arm64"
+                sh "mkdir -p bin && mv `find _build -name stan2tfp.exe` bin/linux-arm64-stan2tfp"
+                stash name:'linux-arm64-exe', includes:'bin/*'
+            }
+            post {always { runShell("rm -rf ./*")}}
+        }
+
+        stage("Build & test a static Linux armhf binary") {
+            when {
+                beforeAgent true
+                allOf {
+                    expression { !skipRemainingStages }
+                    anyOf { buildingTag(); branch 'master' }
+                }
+            }
+            agent {
+                docker {
+                    image 'stanorg/stanc3:staticfi'
+                    //Forces image to ignore entrypoint
+                    label 'linux'
+                    args "--group-add=987 --group-add=988 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
+                }
+            }
+            steps {
+                runShell("""
+                    eval \$(opam env)
+                    dune subst
+                """)
+                sh "bash -x src/stanc3/scripts/build_multiarch_stanc3.sh armhf"
+                sh "mkdir -p bin && mv `find _build -name stan2tfp.exe` bin/linux-armhf-stan2tfp"
+                stash name:'linux-armhf-exe', includes:'bin/*'
+            }
+            post {always { runShell("rm -rf ./*")}}
+        }
+
+        stage("Build & test a static Linux armel binary") {
+            when {
+                beforeAgent true
+                allOf {
+                    expression { !skipRemainingStages }
+                    anyOf { buildingTag(); branch 'master' }
+                }
+            }
+            agent {
+                docker {
+                    image 'stanorg/stanc3:staticfi'
+                    //Forces image to ignore entrypoint
+                    label 'linux'
+                    args "--group-add=987 --group-add=988 --entrypoint=\'\' -v /var/run/docker.sock:/var/run/docker.sock"
+                }
+            }
+            steps {
+                runShell("""
+                    eval \$(opam env)
+                    dune subst
+                """)
+                sh "bash -x src/stanc3/scripts/build_multiarch_stanc3.sh armel"
+                sh "mkdir -p bin && mv `find _build -name stan2tfp.exe` bin/linux-armel-stan2tfp"
+                stash name:'linux-armel-exe', includes:'bin/*'
+            }
+            post {always { runShell("rm -rf ./*")}}
+        }
+
+        // Cross compiling for windows on debianfi
+        stage("Build & test static Windows binary") {
+            when {
+                beforeAgent true
+                expression {
+                    !skipRemainingStages
+                }
+            }
+            agent {
+                docker {
+                    image 'stanorg/stanc3:debian-windowsfi'
+                    label 'linux'
+                    //Forces image to ignore entrypoint
+                    args "--entrypoint=\'\'"
+                }
+            }
+            steps {
+                runShell("""
+                    eval \$(opam env)
+                    dune subst
+                    dune build -x windows
+                """)
+                sh "mkdir -p bin && mv _build/default.windows/src/stan2tfp/stan2tfp.exe bin/windows-stan2tfp"
+                stash name:'windows-exe', includes:'bin/*'
+            }
+            post {always { runShell("rm -rf ./*")}}
+        }
+
         stage("Release tag and publish binaries") {
             when {
                 beforeAgent true
@@ -440,6 +413,7 @@ pipeline {
                 """)
             }
         }
+
     }
     post {
        always {
